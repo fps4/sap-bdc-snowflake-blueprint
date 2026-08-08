@@ -1,0 +1,626 @@
+# The object catalog — the input to the decision.
+#
+# 24 objects across a mixed SAP estate (S/4HANA private cloud, ECC, BW/4HANA,
+# ERP HCM) plus two inbound objects that live in Snowflake and are needed on the
+# SAP side. Sizes, delta capability and consumer profiles are illustrative but
+# shaped like the real thing: the ratios between them are what drive the
+# decisions, and those ratios are the part worth arguing about.
+#
+# direction:
+#   outbound — SAP → Snowflake (the default case)
+#   inbound  — Snowflake → SAP (Datasphere remote table, or Snowflake as a source
+#              in a replication flow). The mirror image, and the half most
+#              reference architectures forget to draw.
+#
+# delta_capability:
+#   cds    — CDS view extraction, real row-level delta with the annotations intact
+#   odp    — ODP-ODQ extractor, delta at extractor granularity
+#   slt    — trigger-based replication; delta bought at the price of a trigger
+#   none   — no delta; every cycle is a full reload
+#   native — the source's own change tracking (Snowflake streams)
+
+- id: ACDOCA
+  name: Universal Journal line items
+  domain: finance
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 12400
+  daily_delta_gb: 38
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 900
+    peak_concurrency: 40
+    scan_gb_per_query: 0.9
+    result_gb_per_query: 0.05
+    latency_slo_seconds: 20
+    freshness_slo_minutes: 240
+    join_locality: snowflake
+    detail_drilldown: true
+    detail_queries_per_day: 12
+    detail_peak_concurrency: 3
+    detail_latency_slo_seconds: 90
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: BSEG
+  name: Accounting document segment (legacy ledger)
+  domain: finance
+  source: ecc
+  direction: outbound
+  size_gb: 3100
+  daily_delta_gb: 9
+  delta_capability: odp
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 120
+    peak_concurrency: 8
+    scan_gb_per_query: 1.4
+    result_gb_per_query: 0.08
+    latency_slo_seconds: 60
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: BKPF
+  name: Accounting document header (legacy ledger)
+  domain: finance
+  source: ecc
+  direction: outbound
+  size_gb: 420
+  daily_delta_gb: 1.2
+  delta_capability: odp
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 120
+    peak_concurrency: 8
+    scan_gb_per_query: 0.3
+    result_gb_per_query: 0.02
+    latency_slo_seconds: 60
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: FAGLFLEXT
+  name: General ledger totals (classic)
+  domain: finance
+  source: ecc
+  direction: outbound
+  size_gb: 90
+  daily_delta_gb: 0.4
+  delta_capability: odp
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 40
+    peak_concurrency: 4
+    scan_gb_per_query: 0.09
+    result_gb_per_query: 0.01
+    latency_slo_seconds: 45
+    freshness_slo_minutes: 1440
+    join_locality: mixed
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: SKB1
+  name: G/L account master (company-code level)
+  domain: finance
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 0.4
+  daily_delta_gb: 0.001
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 15
+    peak_concurrency: 2
+    scan_gb_per_query: 0.02
+    result_gb_per_query: 0.002
+    latency_slo_seconds: 30
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: VBAK
+  name: Sales document header
+  domain: sales
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 610
+  daily_delta_gb: 3.1
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 480
+    peak_concurrency: 22
+    scan_gb_per_query: 0.25
+    result_gb_per_query: 0.03
+    latency_slo_seconds: 15
+    freshness_slo_minutes: 60
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: VBAP
+  name: Sales document item
+  domain: sales
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 2800
+  daily_delta_gb: 14
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 520
+    peak_concurrency: 24
+    scan_gb_per_query: 0.8
+    result_gb_per_query: 0.06
+    latency_slo_seconds: 15
+    freshness_slo_minutes: 60
+    join_locality: snowflake
+    detail_drilldown: true
+    detail_queries_per_day: 18
+    detail_peak_concurrency: 3
+    detail_latency_slo_seconds: 90
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: LIPS
+  name: Delivery item
+  domain: logistics
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 900
+  daily_delta_gb: 5.5
+  delta_capability: cds
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 210
+    peak_concurrency: 12
+    scan_gb_per_query: 0.35
+    result_gb_per_query: 0.03
+    latency_slo_seconds: 30
+    freshness_slo_minutes: 240
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: VBRP
+  name: Billing document item
+  domain: sales
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 1200
+  daily_delta_gb: 6.2
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 300
+    peak_concurrency: 16
+    scan_gb_per_query: 0.45
+    result_gb_per_query: 0.04
+    latency_slo_seconds: 20
+    freshness_slo_minutes: 240
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: MARA
+  name: Material master (general data)
+  domain: master_data
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 21
+  daily_delta_gb: 0.05
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 260
+    peak_concurrency: 14
+    scan_gb_per_query: 0.06
+    result_gb_per_query: 0.01
+    latency_slo_seconds: 20
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: MAKT
+  name: Material descriptions (by language)
+  domain: master_data
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 3
+  daily_delta_gb: 0.01
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: medium
+  consumer:
+    queries_per_day: 260
+    peak_concurrency: 14
+    scan_gb_per_query: 0.01
+    result_gb_per_query: 0.002
+    latency_slo_seconds: 20
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: KNA1
+  name: Customer master (general data)
+  domain: master_data
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 0.34
+  daily_delta_gb: 0.002
+  delta_capability: none
+  bdc_data_product: true
+  semantics: high
+  consumer:
+    queries_per_day: 30
+    peak_concurrency: 4
+    scan_gb_per_query: 0.02
+    result_gb_per_query: 0.004
+    latency_slo_seconds: 30
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: true
+    classification: restricted
+
+- id: LFA1
+  name: Vendor master (general data)
+  domain: master_data
+  source: ecc
+  direction: outbound
+  size_gb: 0.28
+  daily_delta_gb: 0.001
+  delta_capability: none
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 20
+    peak_concurrency: 3
+    scan_gb_per_query: 0.02
+    result_gb_per_query: 0.003
+    latency_slo_seconds: 30
+    freshness_slo_minutes: 1440
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: true
+    classification: restricted
+
+- id: T001
+  name: Company codes (configuration)
+  domain: master_data
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 0.002
+  daily_delta_gb: 0.0
+  delta_capability: none
+  bdc_data_product: false
+  semantics: low
+  consumer:
+    queries_per_day: 12
+    peak_concurrency: 2
+    scan_gb_per_query: 0.001
+    result_gb_per_query: 0.001
+    latency_slo_seconds: 30
+    freshness_slo_minutes: 10080
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: MATDOC
+  name: Material documents (S/4HANA)
+  domain: logistics
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 4400
+  daily_delta_gb: 26
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: medium
+  consumer:
+    queries_per_day: 340
+    peak_concurrency: 18
+    scan_gb_per_query: 1.1
+    result_gb_per_query: 0.07
+    latency_slo_seconds: 25
+    freshness_slo_minutes: 60
+    join_locality: snowflake
+    detail_drilldown: true
+    detail_queries_per_day: 20
+    detail_peak_concurrency: 3
+    detail_latency_slo_seconds: 120
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: MSEG
+  name: Material document segment (legacy)
+  domain: logistics
+  source: ecc
+  direction: outbound
+  size_gb: 1900
+  daily_delta_gb: 4
+  delta_capability: odp
+  bdc_data_product: false
+  semantics: low
+  consumer:
+    queries_per_day: 25
+    peak_concurrency: 4
+    scan_gb_per_query: 1.2
+    result_gb_per_query: 0.09
+    latency_slo_seconds: 120
+    freshness_slo_minutes: 10080
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: MARD
+  name: Storage-location stock
+  domain: logistics
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 45
+  daily_delta_gb: 1.8
+  delta_capability: cds
+  bdc_data_product: true
+  semantics: medium
+  consumer:
+    queries_per_day: 640
+    peak_concurrency: 30
+    scan_gb_per_query: 0.05
+    result_gb_per_query: 0.005
+    latency_slo_seconds: 10
+    freshness_slo_minutes: 30
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: PA0002
+  name: HR master — personal data
+  domain: hr
+  source: ecc_hcm
+  direction: outbound
+  size_gb: 12
+  daily_delta_gb: 0.02
+  delta_capability: slt
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 18
+    peak_concurrency: 3
+    scan_gb_per_query: 0.03
+    result_gb_per_query: 0.005
+    latency_slo_seconds: 45
+    freshness_slo_minutes: 1440
+    join_locality: sap
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1-de]
+    pii: true
+    classification: restricted
+
+- id: PA0008
+  name: HR master — basic pay
+  domain: hr
+  source: ecc_hcm
+  direction: outbound
+  size_gb: 8
+  daily_delta_gb: 0.01
+  delta_capability: slt
+  bdc_data_product: false
+  semantics: medium
+  consumer:
+    queries_per_day: 10
+    peak_concurrency: 2
+    scan_gb_per_query: 0.02
+    result_gb_per_query: 0.004
+    latency_slo_seconds: 45
+    freshness_slo_minutes: 1440
+    join_locality: sap
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1-de]
+    pii: true
+    classification: restricted
+
+- id: ADSO_FI_GL
+  name: BW/4HANA GL InfoProvider (harmonised history)
+  domain: finance
+  source: bw4
+  direction: outbound
+  size_gb: 780
+  daily_delta_gb: 2.5
+  delta_capability: odp
+  bdc_data_product: false
+  semantics: high
+  consumer:
+    queries_per_day: 95
+    peak_concurrency: 9
+    scan_gb_per_query: 0.4
+    result_gb_per_query: 0.03
+    latency_slo_seconds: 40
+    freshness_slo_minutes: 1440
+    join_locality: mixed
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: BWQ_PROFITABILITY
+  name: BW query — profitability by segment (aggregate)
+  domain: finance
+  source: bw4
+  direction: outbound
+  size_gb: 0.0
+  daily_delta_gb: 0.0
+  delta_capability: none
+  bdc_data_product: false
+  semantics: high
+  consumer:
+    queries_per_day: 22
+    peak_concurrency: 3
+    scan_gb_per_query: 0.15
+    result_gb_per_query: 0.002
+    latency_slo_seconds: 60
+    freshness_slo_minutes: 60
+    join_locality: sap
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: confidential
+
+- id: ZFI_ALLOC
+  name: Custom cost-allocation results (Z-table)
+  domain: finance
+  source: s4hana_pc
+  direction: outbound
+  size_gb: 88
+  daily_delta_gb: 4.5
+  delta_capability: none
+  bdc_data_product: false
+  semantics: low
+  consumer:
+    queries_per_day: 150
+    peak_concurrency: 10
+    scan_gb_per_query: 0.12
+    result_gb_per_query: 0.01
+    latency_slo_seconds: 20
+    freshness_slo_minutes: 60
+    join_locality: snowflake
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: SF_MKT_TOUCHPOINTS
+  name: Marketing touchpoints (Snowflake-resident)
+  domain: marketing
+  source: snowflake
+  direction: inbound
+  size_gb: 340
+  daily_delta_gb: 2.2
+  delta_capability: native
+  bdc_data_product: false
+  semantics: low
+  consumer:
+    queries_per_day: 60
+    peak_concurrency: 6
+    scan_gb_per_query: 0.2
+    result_gb_per_query: 0.02
+    latency_slo_seconds: 45
+    freshness_slo_minutes: 1440
+    join_locality: sap
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal
+
+- id: SF_WEB_SESSIONS
+  name: Web sessions (Snowflake-resident, high volume)
+  domain: marketing
+  source: snowflake
+  direction: inbound
+  size_gb: 5200
+  daily_delta_gb: 41
+  delta_capability: native
+  bdc_data_product: false
+  semantics: low
+  consumer:
+    queries_per_day: 8
+    peak_concurrency: 2
+    scan_gb_per_query: 1.6
+    result_gb_per_query: 0.01
+    latency_slo_seconds: 300
+    freshness_slo_minutes: 1440
+    join_locality: sap
+    detail_drilldown: false
+    detail_queries_per_day: 0
+  governance:
+    residency: [eu-central-1]
+    pii: false
+    classification: internal

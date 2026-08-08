@@ -1,0 +1,53 @@
+# Policy — the constraints that are decided before economics, and override it.
+#
+# The point of separating this file from cost_model.yaml is the argument itself:
+# a residency rule is not a number you can trade against a cheaper option. Rules
+# R1–R5 in src/sapbdc/rules.py read this file; rule R7 (economics) only ever
+# chooses among what these rules left standing.
+
+residency:
+  # WHEN an object's allowed regions do not include the target region:
+  #   - a copy at rest in the target is out (REPLICATE, SHARE eliminated)
+  #   - a federated query still moves *results* across the border, so it survives
+  #     only if the object carries no personal data
+  #   - if it does, nothing crosses: the workload stays in SAP
+  # This is the counter-intuitive half of the decision. Volume pushes toward
+  # replication; residency pushes the other way. The objects where both bite are
+  # the ones that need an architect rather than a default.
+  block_copy_outside_allowed_regions: true
+  block_federation_of_pii_outside_allowed_regions: true
+
+delta:
+  # An object with no delta capability is reloaded in full every cycle. Below this
+  # size that is merely wasteful; above it, it is the whole cost of the pipeline,
+  # and replication stops being the cheap option it looks like on a diagram.
+  full_reload_ceiling_gb: 50
+  # Trigger-based replication (SLT) buys delta on tables that have none, at the
+  # price of a logging trigger on a live ERP table. Allowed, but flagged.
+  flag_slt_on_hot_tables: true
+
+share:
+  # BDC Connect for Snowflake shares SAP-delivered *data products*. An object that
+  # is not part of one cannot be shared zero-copy, however much you would like it
+  # to be — you would have to build and publish the data product first.
+  requires_bdc_data_product: true
+  # Delta Sharing is the outbound mechanism; the inbound direction (Snowflake as a
+  # Datasphere source) is federation or a replication flow, not a share.
+  outbound_only: true
+
+semantics:
+  # WHEN an object carries high business semantics (currency conversion, ledger
+  # hierarchies, authorization-relevant CDS annotations) AND a share is available,
+  # prefer the share even where replication is marginally cheaper: replication
+  # flattens the semantics and you rebuild them in Snowflake at your own cost and
+  # your own risk of drift.
+  prefer_share_when_high: true
+  # How much of a cost premium the semantics preference is allowed to absorb
+  # before economics wins anyway. Explicit, so the trade-off is arguable.
+  max_premium_ratio: 1.35
+
+hybrid:
+  # Replicate the aggregate, federate the detail. Earns its complexity only when
+  # the drill-down is genuinely rare — otherwise it is two integrations to operate
+  # where one would do.
+  max_detail_queries_per_day: 25

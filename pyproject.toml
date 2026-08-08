@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sap-bdc-snowflake-blueprint"
+version = "0.1.0"
+description = "A one-page SAP → Business Data Cloud/Datasphere → Snowflake reference architecture, with the federate-vs-replicate-vs-share decision made explicit, costed and runnable."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Farid Gurbanov" }]
+keywords = ["sap", "business-data-cloud", "datasphere", "snowflake", "data-architecture", "delta-sharing"]
+dependencies = [
+    "pydantic>=2.5",
+    "pyyaml>=6.0",
+    "duckdb>=1.0",
+    "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.scripts]
+sapbdc = "sapbdc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

@@ -1,0 +1,71 @@
+# The landscape the decision engine reasons about.
+#
+# Two sides of one seam: SAP systems consolidated through SAP Business Data Cloud
+# (BDC) and SAP Datasphere on one side, a Snowflake account on the other. Every
+# object in objects.yaml names a `source` from `systems` below and inherits that
+# system's extraction and residency reality.
+#
+# Illustrative landscape. Shaped like a real DACH manufacturing estate; not one.
+
+target:
+  platform: snowflake
+  # Where the Snowflake account's data actually comes to rest. Decides whether a
+  # copy is lawful for residency-restricted objects (rule R1).
+  region: eu-central-1
+  regions_covered: [eu-central-1]
+
+sap:
+  # The SAP-side landing zone the seam is drawn at.
+  bdc_tenant_region: eu-central-1
+  datasphere_space: FIN_ANALYTICS
+  # Datasphere replication flows run on a schedule; the floor a flow can be
+  # scheduled at bounds what freshness replication can promise (rule R3).
+  replication_min_schedule_minutes: 15
+  replication_default_schedule_minutes: 60
+  # BDC Connect for Snowflake exchanges SAP-delivered data products over the Delta
+  # Sharing protocol. The share is refreshed by the producing data product, not by
+  # a pipeline you operate.
+  share_refresh_minutes: 15
+
+systems:
+  - id: s4hana_pc
+    name: SAP S/4HANA (private cloud)
+    kind: erp
+    release: "2023 FPS02"
+    # CDS view extraction through the ABAP pipeline engine — real delta, with the
+    # CDS annotations (currency, units, associations) still attached.
+    extraction: [cds, slt]
+    residency: [eu-central-1]
+
+  - id: ecc
+    name: SAP ECC 6.0 EHP8
+    kind: erp
+    release: "EHP8"
+    # No CDS extraction layer. ODP-ODQ for the classic extractors, SLT triggers
+    # for anything the extractors do not cover, full loads for the rest.
+    extraction: [odp, slt]
+    residency: [eu-central-1]
+
+  - id: bw4
+    name: SAP BW/4HANA
+    kind: warehouse
+    release: "2023"
+    # ADSOs and queries. Request-based, not row-level delta.
+    extraction: [odp]
+    residency: [eu-central-1]
+
+  - id: ecc_hcm
+    name: SAP ERP HCM (payroll)
+    kind: hcm
+    release: "EHP8"
+    extraction: [slt]
+    # Works-council agreement: payroll data does not leave the German data centre.
+    residency: [eu-central-1-de]
+
+  - id: snowflake
+    name: Snowflake (existing marketing/web estate)
+    kind: warehouse
+    # The inbound direction: Snowflake as a *source* for Datasphere, either as a
+    # remote table (federated) or in a replication flow.
+    extraction: [native]
+    residency: [eu-central-1]

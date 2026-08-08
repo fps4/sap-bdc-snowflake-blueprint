@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Decide (writes the register and the charts)
+        run: python -m sapbdc decide
+
+      - name: Simulate (executes all three modes)
+        run: python -m sapbdc simulate
+
+      - name: Tests
+        run: pytest -q
+
+      # The register is deterministic, so a stale one means the committed decisions
+      # no longer match the code that claims to produce them. The simulation report
+      # is deliberately excluded: it carries machine-dependent timings.
+      - name: The register must match the code that produced it
+        run: |
+          git diff --exit-code -- reports/decisions.md \
+            || (echo "::error::reports/decisions.md is stale — run 'make decide' and commit it" && exit 1)

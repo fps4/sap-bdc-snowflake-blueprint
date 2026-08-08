@@ -1,0 +1,58 @@
+# The cost and latency model behind the federate-vs-replicate-vs-share crossover.
+#
+# HONESTY: every number here is an illustrative, order-of-magnitude placeholder
+# shaped like list pricing — not a quote, not a benchmark, not a client's rate
+# card. They are here so the *model* can be inspected and re-run with real rates:
+# change the numbers, re-run `make decide`, and the decisions move. That the
+# decisions move when the rates move is the point (ADR-0006).
+
+currency: EUR
+
+replicate:
+  # One-off, amortised over the horizon below.
+  initial_load_eur_per_gb: 0.09
+  amortise_initial_load_months: 24
+  # Moving the daily delta: extraction + transform + load.
+  delta_move_eur_per_gb: 0.12
+  # A second copy at rest, in the target.
+  target_storage_eur_per_gb_month: 0.023
+  # SAP Datasphere meters outbound integration to non-SAP targets in blocks. This
+  # is the line item people forget when they say "we'll just replicate it all".
+  outbound_block_gb_per_month: 1000
+  outbound_block_eur_per_month: 150
+  # Scheduling, monitoring, failure handling, schema-drift triage — the pipeline
+  # you now own per object. Small per object, ruinous at a hundred objects.
+  ops_eur_per_object_month: 45
+  # The consumer still pays warehouse compute to query the copy — cheaper per GB
+  # than reading a shared object, because a native table prunes and clusters. This
+  # is the term that stops "share everything" from being the free lunch it looks
+  # like at first: sharing removes the fixed cost and *raises* the marginal one.
+  consumer_compute_eur_per_gb_scanned: 0.06
+
+federate:
+  # Query pushdown executes on the source. You pay the source, every time.
+  source_compute_eur_per_gb_scanned: 0.55
+  # Results crossing the seam.
+  egress_eur_per_gb: 0.09
+  # Defining and governing the remote table.
+  ops_eur_per_object_month: 4
+
+share:
+  # Zero-copy over Delta Sharing: no second copy, no pipeline, no outbound block.
+  # You pay compute on the consuming side to read the shared object.
+  consumer_compute_eur_per_gb_scanned: 0.11
+  ops_eur_per_object_month: 6
+
+latency:
+  # Modelled p95 seconds for one consumer query, by mode. Calibrated against the
+  # local DuckDB simulation's *relative* shape (make simulate), not against SAP.
+  federate_base_seconds: 2.5
+  federate_seconds_per_gb_scanned: 9.0
+  # Federation serialises on the source system. Each concurrent query adds this
+  # fraction of the base — the term that makes federation fail a strict SLO under
+  # load even when it passes it on an empty system.
+  federate_concurrency_penalty_per_query: 0.06
+  replicate_base_seconds: 0.8
+  replicate_seconds_per_gb_scanned: 0.35
+  share_base_seconds: 1.4
+  share_seconds_per_gb_scanned: 0.6
