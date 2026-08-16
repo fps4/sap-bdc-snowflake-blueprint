@@ -101,6 +101,30 @@ For every object, in this order. The order is the argument: the first five rules
 | **R8** | Hybrid | Replicate the aggregate, federate the rare drill-down. | A dashboard and a line-item drill-down are two workloads, and only one of them justifies a copy. |
 | **R9** | Join locality | Advisory: expose the modelled view, not the raw table. | If the joins are SAP-side, run them where the data is and let only the result cross. |
 
+### The mode does not stop at the seam
+
+A mode is not a label on an arrow — it is a physical binding in whatever reads the
+data next. Replicated is a table you own; federated is a remote relation you re-read;
+shared is somebody else's file you read in place. Those are three different failure
+modes and three different freshness stories, and a transformation layer that does not
+know which one it has will eventually be surprised by it.
+
+So the register **generates** the transformation layer's bindings
+([ADR-0007](design/decisions/0007-dbt-as-the-consumption-layer.md),
+[FS-0005](product/FS-0005-transformation-layer.md)). `KEEP_IN_SAP` emits no source at
+all, and a model that references one fails to compile — R1 becomes a build failure at
+the place the breach would happen. The marts ref a generated *decided* model and never
+name a mode, so flipping an object between modes changes staging and nothing else.
+
+```
+config/policy.yaml ──► decision register ──► transform/models/staging/_sources.yml
+                                        └──► stg_journal__decided.sql ──► marts
+```
+
+CI gates the generated files against a re-run, the same way it gates the register: a
+policy change that never reached the dbt layer fails the build rather than waiting to
+be noticed.
+
 ### The five outcomes
 
 | Mode | What it is | Costs you | Fresh as of |

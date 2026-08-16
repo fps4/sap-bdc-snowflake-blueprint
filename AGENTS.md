@@ -21,7 +21,11 @@ Spec-first and AI-assisted. Read this before changing anything.
    came from, in the file where it lives *and* in anything that prints it.
 7. **Determinism.** No wall-clock or randomness in the catalog, the rules, or the
    data generator. Two runs must differ only in timings.
-8. **`decide_object` stays one linear function.** Its ordering *is* the design.
+8. **The register generates the dbt bindings (ADR-0007).** Nothing under
+   `transform/models/staging/_sources.yml`, `stg_journal__decided.sql` or
+   `seeds/decision_register.csv` is edited by hand — change `config/` and run
+   `make dbt-sources`. A mart that names an integration mode is a bug.
+9. **`decide_object` stays one linear function.** Its ordering *is* the design.
    Splitting it into per-rule helpers would satisfy a linter and hide the argument.
 
 ## Layout
@@ -30,6 +34,10 @@ Spec-first and AI-assisted. Read this before changing anything.
 - `config/` — landscape, objects, policy, cost model
 - `src/sapbdc/` — `catalog.py`, `rules.py`, `econ.py`, `report.py`, `cli.py`
 - `src/sapbdc/sim/` — the local three-mode simulation
+- `src/sapbdc/dbtgen.py` — the register → dbt bindings generator
+- `transform/` — the dbt project (optional extra); `models/staging/_sources.yml`,
+  `stg_journal__decided.sql` and `seeds/decision_register.csv` are generated
+- `scripts/build_site.py` — assembles the published artifact set for CI's `publish`
 - `tests/` — one test per rule, so a change to the rule set has to be deliberate
 - `reports/` — generated; never edited by hand
 
@@ -37,6 +45,8 @@ Spec-first and AI-assisted. Read this before changing anything.
 
 - Matching spec updated; an ADR added if a real trade-off was made.
 - `make lint`, `make test` and `make demo` green locally; CI green.
+- If the decisions moved, `make dbt-sources` re-run and the generated dbt files
+  committed; `make dbt` green if the transformation layer was touched.
 - `reports/decisions.md` regenerated if the decisions moved, and any figure quoted
   in `README.md` or `docs/reference-architecture.md` updated to match.
 - No new required external dependency on the default path.

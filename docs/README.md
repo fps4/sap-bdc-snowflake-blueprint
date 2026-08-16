@@ -18,6 +18,7 @@ Spec-first: the intent and the decisions precede the code, and stay ahead of it.
 | [`product/FS-0002-decision-engine.md`](product/FS-0002-decision-engine.md) | The rule order and every acceptance criterion on it |
 | [`product/FS-0003-cost-model-and-crossover.md`](product/FS-0003-cost-model-and-crossover.md) | The economics and the structural terms that must not be omitted |
 | [`product/FS-0004-simulation.md`](product/FS-0004-simulation.md) | What the local simulation proves, and what it does not |
+| [`product/FS-0005-transformation-layer.md`](product/FS-0005-transformation-layer.md) | How the register generates the dbt bindings, and what the layer tests |
 
 ## Decisions
 
@@ -29,6 +30,7 @@ Spec-first: the intent and the decisions precede the code, and stay ahead of it.
 | [0004](design/decisions/0004-constraints-before-economics.md) | Constraints eliminate; economics only chooses among survivors |
 | [0005](design/decisions/0005-rules-as-code-config-as-data.md) | The estate is data; the reasoning is code |
 | [0006](design/decisions/0006-cost-model-provenance.md) | Keep the numbers; make their provenance impossible to lose |
+| [0007](design/decisions/0007-dbt-as-the-consumption-layer.md) | The register generates the dbt bindings — a mode is a relation, not a comment |
 
 ## Generated
 
@@ -37,3 +39,5 @@ Not edited by hand — regenerate with `make demo`.
 - [`../reports/decisions.md`](../reports/decisions.md) — the decision register
 - [`../reports/simulation.md`](../reports/simulation.md) — the three modes, measured
 - `../reports/crossover.png`, `../reports/mode-mix.png` — the charts
+- `../transform/models/staging/_sources.yml`, `../transform/models/staging/stg_journal__decided.sql`,
+  `../transform/seeds/decision_register.csv` — the dbt bindings, from `make dbt-sources`

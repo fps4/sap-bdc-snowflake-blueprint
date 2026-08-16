@@ -1,0 +1,60 @@
+version: 2
+
+# Hand-written. The bindings these models select from are generated (`_sources.yml`),
+# and so is `stg_journal__decided` — but the normalisation itself is business logic
+# and stays reviewable (ADR-0007).
+
+models:
+  - name: stg_journal__replicate
+    description: >-
+      The journal as a second copy in the warehouse. Storage at rest plus a delta job
+      on every schedule tick, in exchange for the cheapest query of the three.
+    columns:
+      - name: row_id
+        data_tests: [unique, not_null]
+      - name: company_code
+        data_tests: [not_null]
+      - name: binding
+        data_tests:
+          - accepted_values: { values: ["REPLICATE"] }
+
+  - name: stg_journal__federate
+    description: >-
+      The journal read in the source system on every query. Nothing at rest, no
+      schedule — and the source's capacity spent again each time anyone asks.
+    columns:
+      - name: row_id
+        data_tests: [unique, not_null]
+      - name: binding
+        data_tests:
+          - accepted_values: { values: ["FEDERATE"] }
+
+  - name: stg_journal__share
+    description: >-
+      The journal as the producing data product published it, read in place. Freshness
+      is the producer's promise, not your scheduler's.
+    columns:
+      - name: row_id
+        data_tests: [unique, not_null]
+      - name: binding
+        data_tests:
+          - accepted_values: { values: ["SHARE"] }
+
+  - name: stg_journal__decided
+    description: >-
+      GENERATED. Points at whichever binding the decision engine chose for ACDOCA.
+      This is the only place in the project where a mode is selected, which is what
+      keeps `marts/` free of them.
+    columns:
+      - name: row_id
+        data_tests: [unique, not_null]
+      - name: amount_lc
+        data_tests: [not_null]
+
+  - name: stg_material
+    description: Material master, arriving over the same share as the journal.
+    columns:
+      - name: material
+        data_tests: [unique, not_null]
+      - name: material_type
+        data_tests: [not_null]

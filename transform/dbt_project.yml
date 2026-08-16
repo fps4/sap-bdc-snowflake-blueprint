@@ -1,0 +1,50 @@
+name: sapbdc
+version: "0.1.0"
+config-version: 2
+
+# The consumption layer on the Snowflake side of the seam — the `raw → integrated →
+# semantic` box the reference architecture draws. Its sources are generated from the
+# decision register, so an integration mode is a physical binding here rather than a
+# note on a diagram (ADR-0007, FS-0005).
+#
+# Runs on DuckDB. This is not dbt on Snowflake, and nothing here should be read as
+# evidence about what a Snowflake project costs — see ADR-0007.
+
+profile: sapbdc
+
+vars:
+  # The amount `make simulate` stamps onto one source row after every mode is set
+  # up, so the modes can be asked which of them noticed. Must equal SENTINEL_AMOUNT
+  # in `src/sapbdc/sim/modes.py` — `tests/test_dbtgen.py` asserts that it does,
+  # because a sentinel that drifts turns the staleness test green for the wrong
+  # reason, which is worse than no test.
+  sentinel_amount: 999999.99
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Staging absorbs the mode. Marts must never name one — if a mart had to change
+# because an object moved from SHARE to REPLICATE, the layering would be wrong.
+models:
+  sapbdc:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: marts
+
+seeds:
+  sapbdc:
+    decision_register:
+      +column_types:
+        monthly_eur: DOUBLE
+        size_gb: DOUBLE
+        queries_per_day: DOUBLE
+        freshness_slo_minutes: DOUBLE
+        crossover_queries_per_day: DOUBLE

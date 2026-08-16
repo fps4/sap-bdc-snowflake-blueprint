@@ -1,0 +1,40 @@
+# DECLARED, NEVER EXECUTED.
+#
+# This file exists to show the shape of the real target, not to claim it was run.
+# Nothing in this repo has ever connected to a Snowflake account (ADR-0001,
+# ADR-0002), and no measurement anywhere here should be read as a Snowflake
+# measurement. It is named `.example.yml` so dbt cannot pick it up by accident.
+#
+# What would actually change on the way to a real account — and what would not:
+#
+#   Would not change. The generator, the register, the source-to-mode binding rule,
+#   the layering, and every test in `tests/`. Those are the artifact.
+#
+#   Would change. The three bindings stop being DuckDB attachments:
+#     REPLICATE — a table landed by a Datasphere replication flow, incremental with
+#                 a merge strategy and a real cluster key.
+#     FEDERATE  — an external table or a Snowflake-side view onto a Datasphere
+#                 remote table; the latency model in `config/cost_model.yaml` is the
+#                 part that would finally get calibrated against reality.
+#     SHARE     — a shared database mounted from the BDC Connect Delta Share. Read
+#                 in place, no ingest, and `external_location` disappears because
+#                 the share arrives as a first-class relation.
+#
+#   Would need answering, and cannot be answered from anything here. Warehouse
+#   sizing, incremental strategy per object, clustering and micro-partition
+#   behaviour, and what a federated query does to the ERP at peak concurrency.
+
+sapbdc:
+  target: snowflake
+  outputs:
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      authenticator: externalbrowser
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'SAPBDC_TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'SAPBDC_XS') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'SAPBDC') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'ANALYTICS') }}"
+      threads: 8
+      client_session_keep_alive: false

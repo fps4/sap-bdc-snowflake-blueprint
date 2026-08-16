@@ -1,0 +1,25 @@
+object_id,object_name,domain,direction,mode,rule_id,monthly_eur,size_gb,queries_per_day,freshness_slo_minutes,crossover_queries_per_day
+ACDOCA,Universal Journal line items,finance,outbound,SHARE,R6,2679.00,12400.0,900,240,60.57
+BSEG,Accounting document segment (legacy ledger),finance,outbound,REPLICATE,R7,612.72,3100.0,120,1440,14.73
+BKPF,Accounting document header (legacy ledger),finance,outbound,REPLICATE,R7,275.36,420.0,120,1440,46.27
+FAGLFLEXT,General ledger totals (classic),finance,outbound,FEDERATE,R7,64.48,90.0,40,1440,144.33
+SKB1,G/L account master (company-code level),finance,outbound,SHARE,R7,6.99,0.4,15,1440,637.99
+VBAK,Sales document header,sales,outbound,SHARE,R7,402.00,610.0,480,60,58.17
+VBAP,Sales document item,sales,outbound,SHARE,R6,1378.80,2800.0,520,60,26.53
+LIPS,Delivery item,logistics,outbound,REPLICATE,R7,371.17,900.0,210,240,44.94
+VBRP,Billing document item,sales,outbound,SHARE,R7,451.50,1200.0,300,240,36.50
+MARA,Material master (general data),master_data,outbound,SHARE,R7,57.48,21.0,260,1440,210.94
+MAKT,Material descriptions (by language),master_data,outbound,SHARE,R7,14.58,3.0,260,1440,1254.04
+KNA1,Customer master (general data),master_data,outbound,SHARE,R7,7.98,0.3,30,1440,723.05
+LFA1,Vendor master (general data),master_data,outbound,FEDERATE,R7,10.76,0.3,20,1440,712.35
+T001,Company codes (configuration),master_data,outbound,FEDERATE,R7,4.23,0.0,12,10080,10986.95
+MATDOC,Material documents (S/4HANA),logistics,outbound,HYBRID,R8,1446.28,4400.0,340,60,24.59
+MSEG,Material document segment (legacy),logistics,outbound,REPLICATE,R7,314.23,1900.0,25,10080,14.33
+MARD,Storage-location stock,logistics,outbound,SHARE,R7,111.60,45.0,640,30,265.44
+PA0002,HR master — personal data,hr,outbound,KEEP_IN_SAP,R1,0.00,12.0,18,1440,421.11
+PA0008,HR master — basic pay,hr,outbound,KEEP_IN_SAP,R1,0.00,8.0,10,1440,627.46
+ADSO_FI_GL,BW/4HANA GL InfoProvider (harmonised history),finance,outbound,REPLICATE,R7,293.26,780.0,95,1440,37.05
+BWQ_PROFITABILITY,BW query — profitability by segment (aggregate),finance,outbound,REPLICATE,R7,50.94,0.0,22,60,18.55
+ZFI_ALLOC,Custom cost-allocation results (Z-table),finance,outbound,FEDERATE,R7,305.05,88.0,150,60,9629.57
+SF_MKT_TOUCHPOINTS,Marketing touchpoints (Snowflake-resident),marketing,inbound,FEDERATE,R7,205.24,340.0,60,1440,69.48
+SF_WEB_SESSIONS,"Web sessions (Snowflake-resident, high volume)",marketing,inbound,FEDERATE,R7,215.42,5200.0,8,1440,26.66

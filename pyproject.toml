@@ -20,6 +20,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.5"]
+# The transformation layer is deliberately an extra, not a dependency: ADR-0001
+# requires `make demo` to run with no dbt installed. Pinned to the minor this was
+# built and verified against — dbt moves its test and adapter semantics between
+# minors, and a green CI run should mean the same thing next month as it does today.
+dbt = ["dbt-core>=1.9,<1.10", "dbt-duckdb>=1.9,<1.10"]
 
 [project.scripts]
 sapbdc = "sapbdc.cli:main"

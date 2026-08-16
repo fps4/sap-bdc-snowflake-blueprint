@@ -61,6 +61,14 @@ def cmd_simulate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_dbt_sources(args: argparse.Namespace) -> int:
+    from .dbtgen import generate
+
+    written = generate(args.config, args.transform)
+    print("\n".join(f"wrote {p}" for p in written))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="sapbdc", description=__doc__)
     p.add_argument("--config", type=Path, default=None, help="config directory")
@@ -77,6 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("simulate", help="run all three modes on synthetic local data")
     s.set_defaults(func=cmd_simulate)
+
+    t = sub.add_parser(
+        "dbt-sources", help="generate the dbt bindings from the decision register"
+    )
+    t.add_argument("--transform", type=Path, default=None, help="dbt project directory")
+    t.set_defaults(func=cmd_dbt_sources)
     return p
 
 
