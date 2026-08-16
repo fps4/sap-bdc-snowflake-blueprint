@@ -17,6 +17,13 @@ venv/
 /data/*.duckdb
 /data/share/
 
+# dbt build output. The *generated bindings* under transform/models/staging and
+# transform/seeds are committed on purpose — CI gates them against the register, so
+# a policy change that never reached the dbt layer shows up in review.
+/transform/target/
+/transform/dbt_packages/
+/transform/logs/
+
 # OS / editor
 .DS_Store
 .idea/

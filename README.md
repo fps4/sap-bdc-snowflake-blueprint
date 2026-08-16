@@ -44,6 +44,12 @@ What is **not** real, and is labelled as such everywhere it appears:
   [ADR-0006](docs/design/decisions/0006-cost-model-provenance.md).
 - **The 24-object catalog is invented.** Sizes, delta capability and consumer
   profiles are shaped like a real DACH manufacturing estate; they are not one.
+- **The dbt layer runs on DuckDB, and that is not dbt on Snowflake.** The layering
+  and the generated bindings are real and tested; incremental strategy, warehouse
+  sizing and clustering — the things that actually decide what a Snowflake project
+  costs — are not exercised and cannot be inferred from anything here. The
+  Snowflake target is declared and never executed — see
+  [ADR-0007](docs/design/decisions/0007-dbt-as-the-consumption-layer.md).
 - **SAP's integration surface moves quickly.** The mechanisms named here should be
   checked against current SAP documentation before anyone commits a budget.
 
@@ -88,6 +94,14 @@ make test
 
 Requires Python 3.11+. No cloud account, no API key, no Docker.
 
+The transformation layer is an **optional extra**, so the default path above stays
+dependency-free ([ADR-0001](docs/design/decisions/0001-local-first-runtime.md)):
+
+```bash
+make dbt            # install dbt, simulate, regenerate the bindings, build and test
+make dbt-sources    # regenerate the bindings only — run this after any config change
+```
+
 ## What `make decide` prints
 
 ```
@@ -111,7 +125,7 @@ HELD  2 object(s) stay in SAP on constraints, not cost: PA0002, PA0008
 `make explain OBJ=ACDOCA` prints the full reasoning for one object: every mode
 priced, every elimination named, and the crossover frequency.
 
-## The five things to look at
+## The six things to look at
 
 1. **The one page** — [`docs/reference-architecture.md`](docs/reference-architecture.md).
    The diagram, the nine-rule decision ladder, and the crossover formula.
@@ -129,6 +143,13 @@ priced, every elimination named, and the crossover frequency.
 5. **The simulation** — [`reports/simulation.md`](reports/simulation.md). All three
    modes executed, and an explicit account of which measurements mean anything on
    a laptop and which do not.
+6. **The transformation layer** — [`transform/`](transform/). A dbt project whose
+   sources are *generated from the register*: the mode assigned to an object decides
+   how it physically binds, `KEEP_IN_SAP` emits no source at all, and the marts never
+   name a mode. Start with
+   [`stg_journal__decided.sql`](transform/models/staging/stg_journal__decided.sql) —
+   it is three lines and it is the whole argument
+   ([ADR-0007](docs/design/decisions/0007-dbt-as-the-consumption-layer.md)).
 
 ## Layout
 
@@ -141,6 +162,7 @@ priced, every elimination named, and the crossover frequency.
 | `config/` | The landscape, the 24-object catalog, the policy, the cost model |
 | `src/sapbdc/` | Catalog, rules, economics, reporting, CLI |
 | `src/sapbdc/sim/` | The local three-mode simulation |
+| `transform/` | The dbt project — bindings generated from the register (optional extra) |
 | `reports/` | Generated: the decision register, the simulation, the charts |
 
 ## License

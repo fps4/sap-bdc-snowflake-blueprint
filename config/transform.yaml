@@ -1,0 +1,68 @@
+# Where each integration mode physically lands, and which objects the local
+# simulation actually materialises.
+#
+# This file is the seam between the decision (a mode) and the transformation layer
+# (a relation you can select from). It is configuration rather than code for the
+# same reason everything else here is (ADR-0005): moving this repo onto a real
+# Snowflake account is an edit to YAML — a database name, a stage path — and not a
+# change to the generator.
+#
+# Read with `src/sapbdc/dbtgen.py`. Consumed by `sapbdc dbt-sources`.
+
+# dbt source group per mode. `database` and `schema` name the relation; the SHARE
+# binding overrides both with an external file, because a share is not a table in
+# your account — that is the whole point of it.
+bindings:
+  REPLICATE:
+    source_name: sap_replicated
+    description: >-
+      A second copy, at rest in the warehouse, kept current by a delta job that
+      runs on every schedule tick. Attached here as the database the simulation's
+      replicate run wrote.
+    database: wh_replicate
+    schema: main
+
+  FEDERATE:
+    source_name: sap_federated
+    description: >-
+      Nothing at rest. The source is attached read-only and re-read on every
+      query, which is why this binding is the only one that can see a change
+      posted a second ago — and why it spends the source system's capacity to do
+      it.
+    database: sap_source
+    schema: main
+
+  SHARE:
+    source_name: sap_shared
+    description: >-
+      Published once by the producing data product and read in place. No ingest,
+      no second copy, and a freshness cadence that belongs to the producer rather
+      than to your scheduler.
+    schema: main
+    external_location: "../data/share/{name}.parquet"
+
+# HYBRID binds to its replicate leg: the aggregate the copy exists to serve. The
+# federated detail leg is real but is a drill-down path, not the model the marts
+# are built on.
+mode_aliases:
+  HYBRID: REPLICATE
+
+# The objects the local simulation materialises, and therefore the only ones that
+# can be bound to a relation that exists. Every other catalog object is still
+# governed by the register — it appears in the seed, and the KEEP_IN_SAP test
+# covers it — it simply has no local data behind it.
+#
+# `available_modes` is what the simulation happens to leave on disk for that
+# object, not what the policy permits. ACDOCA is materialised in all three so the
+# three bindings can be compared side by side; MARA is published to the share only.
+objects:
+  ACDOCA:
+    table: acdoca
+    available_modes: [REPLICATE, FEDERATE, SHARE]
+  MARA:
+    table: mara
+    available_modes: [SHARE]
+
+# The object the staging layer's decided binding is generated for. Its mode is
+# read from the register, not from this file.
+decided_journal_object: ACDOCA

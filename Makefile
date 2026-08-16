@@ -36,6 +36,24 @@ demo: decide simulate ## The whole thing: decisions, charts, and the measured si
 	@echo "reports/crossover.png  — where replication overtakes federation"
 	@echo "docs/reference-architecture.md — the one page to put on screen"
 
+# ---- the transformation layer (optional; ADR-0001 keeps it off the default path) --
+
+.PHONY: install-dbt
+install-dbt: $(BIN)/python ## Install the optional dbt extra
+	$(BIN)/pip install -e ".[dev,dbt]"
+
+.PHONY: dbt-sources
+dbt-sources: install ## Regenerate the dbt bindings from the decision register
+	$(BIN)/python -m sapbdc dbt-sources
+
+.PHONY: dbt
+dbt: install-dbt simulate dbt-sources ## Build and test the dbt layer on the simulation's output
+	cd transform && ../$(BIN)/dbt build --profiles-dir .
+
+.PHONY: dbt-docs
+dbt-docs: install-dbt dbt-sources ## Generate the dbt docs site into transform/target
+	cd transform && ../$(BIN)/dbt docs generate --profiles-dir .
+
 .PHONY: test
 test: install ## Run the test suite
 	$(BIN)/pytest -q
@@ -46,4 +64,5 @@ lint: install ## Lint
 
 .PHONY: clean
 clean: ## Remove generated data and reports
-	rm -rf data/*.duckdb data/share reports/*.png reports/*.md
+	rm -rf data/*.duckdb data/share reports/*.png reports/*.md \
+	       transform/target transform/dbt_packages transform/logs

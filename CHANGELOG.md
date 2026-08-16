@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **The transformation layer** — `transform/`, a dbt project on DuckDB that builds
+  the `raw → integrated → semantic` box the reference architecture draws. Its
+  bindings are **generated from the decision register** (`make dbt-sources`): the
+  mode assigned to an object decides how that object physically binds, `KEEP_IN_SAP`
+  emits no source at all, and the marts never name a mode.
+- **Four singular tests that assert the architecture, not the SQL** — no source may
+  name an object held in SAP (R1, enforced as a build failure); the generated
+  bindings must agree with the register; the three bindings must carry the same
+  rows; and only federation may see a change posted after setup.
+- **CI/CD** — the workflow gains a Python matrix, least-privilege permissions,
+  run-cancelling concurrency, a `transform` job with a staleness gate on the
+  generated dbt files, a `publish` job that renders the artifact set to GitHub Pages
+  (opt-in via `ENABLE_PAGES`), and a tagged `release` job.
+- FS-0005 and ADR-0007. dbt is an **optional extra** — `make demo` still needs
+  nothing but Python (ADR-0001).
+
 ## 0.1.0 — 2026-08-08
 
 First public version.

@@ -1,0 +1,25 @@
+# The local profile. One DuckDB session holds all three bindings at once, which is
+# the only reason the three modes can be compared side by side:
+#
+#   sap_source    — the SAP system, attached read-only. FEDERATE reads through it.
+#   wh_replicate  — the second copy the simulation's replicate run left behind.
+#   ../data/share — the Parquet the producing data product published. SHARE reads it
+#                   in place, via `external_location` on the source.
+#
+# All three are produced by `make simulate`; run that first. The Snowflake target is
+# in `profiles.snowflake.example.yml` and is never executed — see ADR-0007.
+
+sapbdc:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: ../data/wh_dbt.duckdb
+      threads: 4
+      attach:
+        - path: ../data/source.duckdb
+          alias: sap_source
+          read_only: true
+        - path: ../data/wh_replicate.duckdb
+          alias: wh_replicate
+          read_only: true

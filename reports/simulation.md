@@ -12,8 +12,8 @@ What survives the substitution is everything the modes actually differ in: what 
 
 | Mode | Setup | Recurring per tick | Warehouse at rest | Published once | Sees a change posted after setup | Query (ignore) |
 |---|---:|---:|---:|---:|:--:|---:|
-| **REPLICATE** | 0.71s | 0.04s | 29.4 MB | — | no | 7 ms |
-| **FEDERATE** | 0.00s | — | 0.3 MB | — | yes | 8 ms |
+| **REPLICATE** | 0.90s | 0.03s | 29.6 MB | — | no | 7 ms |
+| **FEDERATE** | 0.01s | — | 0.3 MB | — | yes | 8 ms |
 | **SHARE** | 0.14s | — | 0.3 MB | 17.5 MB | no | 12 ms |
 
 ## What each mode makes you own
@@ -24,6 +24,6 @@ What survives the substitution is everything the modes actually differ in: what 
 
 ## The three sentences worth taking away
 
-1. **Replication is the only mode that leaves a second copy behind.** 29.4 MB in the warehouse against 0.3 MB for federation and 0.3 MB for the share — and at the catalog's real sizes that ratio is measured in terabytes and a monthly bill.
-2. **Replication is also the only mode with a recurring job.** The delta upsert took 0.04s here and runs on every schedule tick forever; the other two have no tick to run on, and therefore no 03:00 failure to triage.
+1. **Replication is the only mode that leaves a second copy behind.** 29.6 MB in the warehouse against 0.3 MB for federation and 0.3 MB for the share — and at the catalog's real sizes that ratio is measured in terabytes and a monthly bill.
+2. **Replication is also the only mode with a recurring job.** The delta upsert took 0.03s here and runs on every schedule tick forever; the other two have no tick to run on, and therefore no 03:00 failure to triage.
 3. **Only federation saw the change.** The share did not — it waits for the producer to republish — and the copy did not until its next delta run. A share is not federation with better economics; it is a copy someone else operates, and its freshness is their promise rather than your schedule.
